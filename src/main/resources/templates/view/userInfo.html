@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta content="text/html;charset=UTF-8"/>
+    <title>UserInfo</title>
+    <link href="/webjars/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet"/>
+    <link href="/webjars/jquery/3.2.1/jquery.min.js" rel="stylesheet"/>
+</head>
+<body>
+<div class="center-block" style="width:800px" th:if="${not #lists.isEmpty(userInfo)}">
+    <div class="row"  style="height:50px;">
+        <div class="col-md-1">Cot123123entId</div>
+        <div class="col-md-2">Titasdasdle</div>
+        <div class="col-md-5">Cotent</div>
+        <div class="col-md-1">User123123Id</div>
+        <div class="col-md-2">CreateTime</div>
+    </div>
+    <div th:if="${not #lists.isEmpty(userInfo)}">
+        <div class="row" th:each="content:${userInfo}">
+            <div class="col-md-1"><span th:text="${userInfo.userName}"></span></div>
+            <div class="col-md-2"><span th:text="${userInfo.password}"></span></div>
+            <div class="col-md-2"><span th:text="${userInfo.id}"></span></div>
+            <div class="col-md-2"><span th:text="${userInfo.password}"></span></div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
