@@ -18,7 +18,7 @@ public class LoginController {
 
     @RequestMapping("/")
     public ModelAndView toIndexPage(){
-        return new ModelAndView("/view/index");
+        return new ModelAndView("index");
     }
 
     @RequestMapping(value="/login")
