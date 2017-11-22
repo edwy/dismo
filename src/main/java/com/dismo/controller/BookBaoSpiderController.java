@@ -1,14 +1,23 @@
 package com.dismo.controller;
 
-import com.dismo.model.BookDetail;
-import com.dismo.model.BookInfo;
+
+
+import com.dismo.model.novel.NovelDetail;
+import com.dismo.model.novel.NovelInfo;
 import com.dismo.service.BookSpiderService;
 import org.apache.commons.codec.net.URLCodec;
-import org.springframework.stereotype.Controller;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import us.codecraft.webmagic.Page;
 import us.codecraft.webmagic.Site;
 import us.codecraft.webmagic.Spider;
+import us.codecraft.webmagic.model.OOSpider;
+import us.codecraft.webmagic.pipeline.PageModelPipeline;
 import us.codecraft.webmagic.processor.PageProcessor;
 
 import java.io.UnsupportedEncodingException;
@@ -20,15 +29,15 @@ import java.util.regex.Pattern;
  * @author Yang Jiyu
  * 书包网爬虫程序,逐页爬并保存Mysql
  */
-@Controller
-@RequestMapping(value = "/spider")
+@Component
 public class BookBaoSpiderController implements PageProcessor {
 
     URLCodec codec = new URLCodec();
 
-    private static String dirName = "D:/ebook/";
+    @Qualifier("bookDaoPipeline")
+    @Autowired
+    private PageModelPipeline bookDaoPipeline;
 
-    private BookSpiderService service;
     /**
      * 抓取网站的相关配置，包括编码、抓取间隔、重试次数等
      */
@@ -47,13 +56,12 @@ public class BookBaoSpiderController implements PageProcessor {
     public static String urlSuffix = "\\&yeshu=";
     public static String numberReg = "[0-9]+";
 
-    @RequestMapping(value = "/bookbao")
-    public String startBookSpider() {
-        Site site = new Site();
+
+    public void startBookSpider() {
         site.setCharset("UTF-8");
-        Spider bookBaoSpider = Spider.create(new BookBaoSpiderController()).addUrl("http://www.bookbao.cc/TXT/list2_1.html").thread(20);
-        bookBaoSpider.start();
-        return null;
+        OOSpider.create(site,bookDaoPipeline, NovelInfo.class)
+                .addUrl("http://www.bookbao.cc/TXT/list2_1.html")
+                .thread(1).run();
     }
 
     @Override
@@ -70,19 +78,26 @@ public class BookBaoSpiderController implements PageProcessor {
             if(1 == findNum(page.getUrl().toString())){
                 maxListPageIndex = Integer.parseInt(page.getHtml().$(".listl2 > dl:nth-child(3) > code:nth-child(5) > a:nth-child(10)").regex("(?<=>).*(?=</a>)").toString());
                 page.addTargetRequests(page.getHtml().xpath("//div[@class='listl2']/ul/li/h5").links().all());
-                for(int i = 1; i<maxListPageIndex;i++){
+                page.addTargetRequest("http://www.bookbao.cc/TXT/list2_1.html");
+                for(int i = 1; i<2 ;i++){
                     page.addTargetRequest("http://www.bookbao.cc/TXT/list2_"+i+".html");
                 }
             }else{
                 page.addTargetRequests(page.getHtml().xpath("//div[@class='listl2']/ul/li/h5").links().all());
             }
-            //↓明细页,获取小说概要信息保存主表信息;
+            //明细页
         } else if (page.getUrl().regex(dataUrl).match()) {
-            BookInfo book = new BookInfo();
-
-
+            NovelInfo book = new NovelInfo();
+            //获取小说概要信息保存主表信息;
             book.setId(UUID.randomUUID().toString());
-            service.saveBook(book);
+            book.setBook_title(page.getHtml().$(".pml1 >h1").regex("(?<=《)[^》]+(?=》)").toString());
+            book.setBook_author(page.getHtml().xpath("//*[@id=\"xxlist\"]/li[5]/text()").toString());
+            book.setBook_size(page.getHtml().xpath("//*[@id=\"xxlist\"]/li[4]/text()").toString());
+            book.setBook_category(page.getHtml().xpath("//*[@id=\"xxlist\"]/li[2]/text()").toString());
+            book.setBook_summary(page.getHtml().$(".con_text > li > span").toString());
+            book.setUpdate_date(page.getHtml().xpath("//*[@id=\"xxlist\"]/li[7]/text()").toString());
+
+            //获取内容明细页;添加下载列表;
             page.addTargetRequest(urlTransform(page.getHtml().$(".downlistbox > li:nth-child(1) > a:nth-child(1)").links().toString()));
             //获取下载内容页TXT,主表内容存储//获取对应图片,供使用;
         } else if (page.getUrl().regex(pre+contentPage+end).match()) {
@@ -94,23 +109,17 @@ public class BookBaoSpiderController implements PageProcessor {
             //获取明细内容页;内容页存储;
         } else if (page.getUrl().regex(contentPage+urlSuffix+numberReg).match()) {
             //内容过滤,需要替换LOGO文件;
-            BookDetail bookDetail = new BookDetail();
+            NovelDetail bookDetail = new NovelDetail();
             String bookName = page.getHtml().xpath("/html/body/h1/text()").toString();
             String currentPageContents = page.getHtml().xpath("//div[@class='ddd']/text()").toString();
-            String dir = dirName + bookName;
-            String fileName = dir + slash + bookName + txt;
-            String bookMainId = service.selIdByBookName(bookName);
 
             if(0 == findNum(page.getUrl().toString())){
                 bookDetail.setId(UUID.randomUUID().toString());
-                bookDetail.setBookId(bookMainId);
+                bookDetail.setBookId("11");
                 bookDetail.setBookContent(currentPageContents);
                 bookDetail.setBookIndex(page.getUrl().toString());
-                service.saveBookDetail(bookDetail);
-                //FileUtil.createDir(dir);
-                //FileUtil.createFile(fileName);
             }
-            //FileUtil.writeFile(fileName,currentPageContents);
+
         } else {
             page.setSkip(true);
         }
@@ -152,6 +161,12 @@ public class BookBaoSpiderController implements PageProcessor {
             result = Integer.parseInt(matcher.group());
         }
         return result;
+    }
+
+    public static void main(String[] args) {
+        ApplicationContext applicationContext = new ClassPathXmlApplicationContext("classpath:/spring/applicationContext*.xml");
+        final BookBaoSpiderController jobCrawler = applicationContext.getBean(BookBaoSpiderController.class);
+        jobCrawler.startBookSpider();
     }
 
 }

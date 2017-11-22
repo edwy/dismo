@@ -1,13 +1,18 @@
-package com.dismo.model;
+package com.dismo.model.novel;
 
-import javax.persistence.Id;
+import us.codecraft.webmagic.Page;
+import us.codecraft.webmagic.model.AfterExtractor;
+import us.codecraft.webmagic.model.annotation.HelpUrl;
+import us.codecraft.webmagic.model.annotation.TargetUrl;
 
 /**
- * Created by Edwin Yang on 2017/11/16 0016.
+ * @author  Edwin Yang on
+ * 2017/11/16 0016.
  */
-public class BookDetail {
+@TargetUrl("http://www\\.bookbao\\.cc/TXT/down_\\w+\\.html")
+@HelpUrl("http://www\\.bookbao\\.cc/TXT/list2_[0-9]+\\.html")
+public class NovelDetail implements AfterExtractor {
 
-    @Id
     private String id;
     private String bookId;
     private String bookContent;
@@ -43,5 +48,10 @@ public class BookDetail {
 
     public void setBookIndex(String bookIndex) {
         this.bookIndex = bookIndex;
+    }
+
+    @Override
+    public void afterProcess(Page page) {
+
     }
 }

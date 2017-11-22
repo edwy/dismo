@@ -1,18 +1,15 @@
 package com.dismo.service;
 
 
-import com.dismo.model.BookDetail;
-import com.dismo.model.BookInfo;
+
+import org.springframework.stereotype.Service;
 
 /**
  * @author Yang Jiyu
  */
-public interface BookSpiderService {
+@Service
+public class BookSpiderService  {
 
-    String saveBook(BookInfo bookBao);
 
-    String selIdByBookName(String bookName);
-
-    String saveBookDetail(BookDetail bookDetail);
 
 }

@@ -1,6 +1,7 @@
 package com.dismo.controller;
 
 import com.dismo.mapper.LoginMapper;
+import com.dismo.model.novel.NovelInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,6 +25,7 @@ public class LoginController {
     @RequestMapping(value="/login")
     public ModelAndView  getUserInfoByName() {
         ModelAndView mv = new ModelAndView("view/userInfo");
+        NovelInfo book = new NovelInfo();
         mv.addObject("userInfo",loginMapper.findUserByName().get(0));
         return mv;
     }
